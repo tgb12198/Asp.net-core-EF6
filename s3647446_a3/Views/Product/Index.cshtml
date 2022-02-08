@@ -1,0 +1,230 @@
+﻿@{
+    Layout = "_Layout";
+}
+
+<div id="app">
+    <div class="title_head" style="padding:5px">
+        <el-row style="line-height:40px;text-align:right">
+           <el-col :span="4">
+                <el-select style="width:100%"
+                       filterable
+                       clearable
+                       @@change="search"
+                       v-model="IsOrdered"
+                       placeholder="Select">
+                <el-option v-for="item in statusValues" :key="item.value" :label="item.label" :value="item.value" :disabled="item.disabled"></el-option>
+            </el-select>
+           </el-col>
+           <el-col :span="18">
+                <el-button type="success" @@click="add">Add Product</el-button>
+           </el-col>
+        </el-row>
+    </div>
+    <div class="content">
+        <div class="table-list">
+            <el-table :data="tableData" ref="myTable" border style="width: 100%"
+                      v-loading="loading"
+                      element-loading-text="loading"
+                      element-loading-spinner="el-icon-loading"
+                      element-loading-background="rgba(3, 3, 3, 0.8)"
+                      :header-cell-style="{background:'##EEEEEE',color:'#000'}"
+                      :row-class-name="tableRowClassName">
+                <el-table-column type="selection" width="50">
+                </el-table-column>
+                <el-table-column prop="ProductID" label="ProductID" min-width="30px" align="center">
+                    <template slot-scope="scope">
+                        <div>{{scope.row.productID}}</div>
+                    </template>
+                </el-table-column>
+                <el-table-column prop="Name" label="Name" min-width="80px" align="center">
+                    <template slot-scope="scope">
+                        <div>{{scope.row.name}}</div>
+                    </template>
+                </el-table-column>
+                <el-table-column prop="Price" label="Price" min-width="30px" align="center">
+                    <template slot-scope="scope">
+                        <div>
+                            {{scope.row.price}}
+                        </div>
+                    </template>
+                </el-table-column>
+                <el-table-column prop="" label="" min-width="30px" align="center">
+                    <template slot-scope="scope">
+                        <div><i class="el-icon-edit" @@click="editRow(scope.row.productID)"></i></div>
+                    </template>
+                </el-table-column>
+            </el-table>
+            <el-pagination @@size-change="handleSizeChange"
+                           @@current-change="handleCurrentChange"
+                           :current-page="currentPage"
+                           :page-sizes="[10, 20, 50, 100, 500]"
+                           :page-size="pageSize"
+                           layout="total, sizes, prev, pager, next, jumper"
+                           :total="totalCount">
+            </el-pagination>
+        </div>
+    </div>
+    <div class="add">
+        <el-dialog :visible.sync="visible"
+                   width="500px"
+                   top="10vh">
+            <template slot="title">
+                <span style="font-weight:bolder;font-size:20px">{{title}}</span>
+            </template>
+            <el-form :model="ruleForm" :rules="rules" ref="ruleForm" label-width="100px" style="font-weight:bold">
+                <el-form-item label="Name" prop="Name">
+                    <el-input v-model="ruleForm.Name"></el-input>
+                </el-form-item>
+                <el-form-item label="Price" prop="Price">
+                    <el-input-number v-model="ruleForm.Price" :precision="2" :step="0.1" :max="999999" style="width:100%"></el-input-number>
+                </el-form-item>
+            </el-form>
+            <div slot="footer" class="dialog-footer">
+                <el-button @@click="visible = false">Cancel</el-button>
+                <el-button type="primary" @@click="submitForm('ruleForm')">OK</el-button>
+            </div>
+        </el-dialog>
+    </div>
+</div>
+
+<script>
+    ELEMENT.locale(ELEMENT.lang.en);
+    var vm = new Vue({
+        el: '#app',
+        data() {
+            return {
+                tableData: [],
+                loading: false,
+                currentPage: 1,
+                pageSize: 20,
+                totalCount: 0,
+                IsOrdered: -1,
+                visible: false,
+                title: 'Add Product',
+                ruleForm: {
+                    ProductID: 0,
+                    Name: "",
+                    Price: 0.00,
+                    IsEdit: false,
+                },
+                 statusValues: [{
+                    label: 'Ordered',
+                    value: 1,
+                    disabled: false
+                }, {
+                    label: 'No Ordered',
+                    value: 0,
+                    disabled: false
+                    },{
+                    label: 'All',
+                    value: -1,
+                    disabled: false
+                }],
+                rules: {
+                    Name: [
+                        { required: true, message: 'Name must be input', trigger: 'blur' }
+                    ],
+                    Price: [
+                        { required: true, message: 'Price must be input', trigger: 'blur' }
+                    ]
+                },
+            }
+        },
+        methods: {
+            search() {
+                if(this.IsOrdered==''){
+                    this.IsOrdered=-1;
+                }
+                this.getProductList();
+            },
+            submitForm(formName) {
+                this.$refs[formName].validate((valid) => {
+                    if (valid) {
+                        axios.post('@Url.Action("SaveProduct")',
+                                this.ruleForm
+                            ).then((res) => {
+                                if (res.status == 200 && res.data&&res.data.message=='success') {
+                                    this.$message({
+                                        showClose: true,
+                                        message: res.data.message,
+                                        type: 'success',
+                                        offset: 20
+                                    });
+                                    this.visible = false;
+                                     this.getProductList();
+                                } else {
+                                    this.$message({
+                                        showClose: true,
+                                        message: res.data.message,
+                                        type: 'error',
+                                        offset: 20
+                                    });
+                                }
+                            });
+                    } else {
+                        return false;
+                    }
+                });
+            },
+            getProductList() {
+                this.loading = true;
+                axios.post('@Url.Action("GetProductList")', {
+                    PageIndex: this.currentPage,
+                    PageSize: this.pageSize,
+                    IsOrdered: this.IsOrdered
+                }).then((res) => {
+                    if (res.status == 200) {
+                        this.tableData = res.data.data;
+                        this.totalCount = res.data.totalCount;
+                        this.loading = false;
+                    }
+                }).catch((error) => {
+                    console.log(error);
+                });
+            },
+            add() {
+                this.visible = true;
+                this.ruleForm.Name = '';
+                this.ruleForm.Price = 0.00;
+                this.ruleForm.IsEdit = false;
+            },
+            getProductById(id) {
+                 axios.get('@Url.Content("GetProductById")', {
+                    params: {
+                        id: id
+                    }
+                }).then((res) => {
+                    if (res.status == 200) {
+                        this.ruleForm.Name = res.data.data.name;
+                        this.ruleForm.Price = res.data.data.price;
+                        this.ruleForm.ProductID = res.data.data.productID;
+                        this.ruleForm.IsEdit = true;
+                    }
+                });
+            },
+            editRow(id) {
+                this.visible = true;
+                this.getProductById(id)
+            },
+            handleSizeChange(val) {
+                this.pageSize = val;
+                this.getProductList();
+            },
+            handleCurrentChange(val) {
+                this.currentPage = val;
+                this.getProductList();
+            },
+            tableRowClassName({ row, rowIndex }) {
+                if (rowIndex % 2 === 0) {
+                    return 'warning-row';
+                } else if (rowIndex % 2 === 1) {
+                    return 'success-row';
+                }
+                return '';
+            },
+        },
+        created: function () {
+            this.getProductList();
+        }
+    });
+</script>

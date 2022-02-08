@@ -1,0 +1,241 @@
+﻿@{
+    Layout = "_Layout";
+}
+
+<div id="app">
+    <div class="title_head" style="padding:5px">
+        <el-row style="line-height:40px;text-align:right">
+            <el-button type="success" @@click="add">Create Order</el-button>
+        </el-row>
+    </div>
+    <div class="content">
+        <div class="table-list">
+            <el-table :data="tableData" ref="myTable" border style="width: 100%"
+                      v-loading="loading"
+                      element-loading-text="loading"
+                      element-loading-spinner="el-icon-loading"
+                      element-loading-background="rgba(3, 3, 3, 0.8)"
+                      :header-cell-style="{background:'##EEEEEE',color:'#000'}"
+                      :row-class-name="tableRowClassName">
+                <el-table-column type="selection" width="50">
+                </el-table-column>
+                <el-table-column prop="OrderID" label="OrderID" min-width="30px" align="center">
+                    <template slot-scope="scope">
+                        <div>{{scope.row.orderID}}</div>
+                    </template>
+                </el-table-column>
+                <el-table-column prop="OrderDate" label="Order Date" min-width="80px" align="center">
+                    <template slot-scope="scope">
+                        <div>{{scope.row.orderDate}}</div>
+                    </template>
+                </el-table-column>
+                <el-table-column prop="CustomerName" label="Customer Name" min-width="30px" align="center">
+                    <template slot-scope="scope">
+                        <div>
+                            {{scope.row.customerName}}
+                        </div>
+                    </template>
+                </el-table-column>
+                <el-table-column prop="DeliveryDate" label="Delivery Date" min-width="30px" align="center">
+                    <template slot-scope="scope">
+                        <div>
+                            {{scope.row.deliveryDate}}
+                        </div>
+                    </template>
+                </el-table-column>
+                <el-table-column prop="DeliveryAddress" label="Delivery Address" min-width="30px" align="center">
+                    <template slot-scope="scope">
+                        <div>
+                            {{scope.row.deliveryAddress}}
+                        </div>
+                    </template>
+                </el-table-column>
+                <el-table-column prop="PruductCount" label="Product Quantity" min-width="30px" align="center">
+                    <template slot-scope="scope">
+                        <div>
+                            {{scope.row.productCount}}
+                        </div>
+                    </template>
+                </el-table-column>
+            </el-table>
+        </div>
+    </div>
+    <div class="add">
+        <el-dialog :visible.sync="visible"
+                   width="800px"
+                   top="10vh">
+            <template slot="title">
+                <span style="font-weight:bolder;font-size:20px">{{title}}</span>
+            </template>
+            <el-form :model="ruleForm" :rules="rules" ref="ruleForm" label-width="150px" style="font-weight:bold">
+                <el-form-item label="CustomerName" prop="CustomerName">
+                    <el-input v-model="ruleForm.CustomerName"></el-input>
+                </el-form-item>
+                <el-form-item label="Delivery Date" prop="DeliveryDate">
+                    <el-date-picker v-model="ruleForm.DeliveryDate"
+                                    type="date"
+                                    style="width:100%"
+                                    value-format="yyyy-MM-dd"
+                                    placeholder="Select Date">
+                    </el-date-picker>
+                </el-form-item>
+                <el-form-item label="Delivery Address" prop="DeliveryAddress">
+                    <el-input v-model="ruleForm.DeliveryAddress"></el-input>
+                </el-form-item>
+                <el-form-item label="Product" prop="Product">
+                    <el-select style="width:100%"
+                               filterable
+                               remote
+                               clearable
+                               :remote-method="getProducts"
+                               v-model="ruleForm.Product"
+                               placeholder="Product">
+                        <el-option v-for="item in products" :key="item.value" :label="item.label" :value="item.value" :disabled="item.disabled"></el-option>
+                    </el-select>
+                </el-form-item>
+                <el-form-item label="Quantity" prop="Quantity">
+                    <el-input v-model="ruleForm.Quantity"></el-input>
+                </el-form-item>
+            </el-form>
+            <div slot="footer" class="dialog-footer">
+                <el-button @@click="visible = false">Cancel</el-button>
+                <el-button type="primary" @@click="submitForm('ruleForm')">OK</el-button>
+            </div>
+        </el-dialog>
+    </div>
+</div>
+
+<script>
+    ELEMENT.locale(ELEMENT.lang.en);
+    var vm = new Vue({
+        el: '#app',
+        data() {
+            return {
+                tableData: [],
+                loading: false,
+                currentPage: 1,
+                pageSize: 20,
+                visible: false,
+                title: 'Create Order',
+                ruleForm: {
+                    CustomerName: '',
+                    DeliveryDate: '',
+                    DeliveryAddress: '',
+                    Product:'',
+                    Quantity:'',
+                    Products:[]
+                },
+                products:[],
+                rules: {
+                    CustomerName: [
+                        { required: true, message: 'Customer Name must be input', trigger: 'blur' }
+                    ],
+                    DeliveryDate: [
+                        { required: true, message: 'Delivery Date must be input', trigger: 'change' }
+                    ],
+                    CustomerAddress: [
+                        { required: true, message: 'CustomerAddress Name must be input', trigger: 'blur' }
+                    ],
+                    Product: [
+                        { required: true, message: 'Product must be input', trigger: 'change' }
+                    ],
+                    Quantity: [
+                        { required: true, message: 'Quantity must be input', trigger: 'blur' }
+                    ],
+                },
+            }
+        },
+        methods: {
+            getProducts(query){
+                 axios.get('@Url.Content("/Product/GetProducts")', {
+                    params: {
+                        query: query
+                    }
+                }).then((res) => {
+                    if (res.status == 200) {
+                        this.products = res.data;
+                    } else {
+                        this.products = [];
+                    }
+                });
+            },
+            submitForm(formName) {
+                this.ruleForm.Quantity=new Number(this.ruleForm.Quantity);
+                this.ruleForm.Product = new Number(this.ruleForm.Product);
+                let obj = new Object();
+                obj.ProductID=this.ruleForm.Product;
+                obj.Quantity = this.ruleForm.Quantity;
+                this.ruleForm.Products.push(obj);
+                this.$refs[formName].validate((valid) => {
+                    if (valid) {
+                        axios.post('@Url.Action("CreateOrder")',
+                                this.ruleForm
+                            ).then((res) => {
+                                if (res.status == 200 && res.data&&res.data.message=='success') {
+                                    this.$message({
+                                        showClose: true,
+                                        message: res.data.message,
+                                        type: 'success',
+                                        offset: 20
+                                    });
+                                    this.visible = false;
+                                     this.getOrderList();
+                                } else {
+                                    this.$message({
+                                        showClose: true,
+                                        message: res.data.message,
+                                        type: 'error',
+                                        offset: 20
+                                    });
+                                }
+                            });
+                    } else {
+                        return false;
+                    }
+                });
+            },
+            getOrderList() {
+                this.loading = true;
+                axios.post('@Url.Action("GetOrderList")', {
+                    PageIndex: this.currentPage,
+                    PageSize: this.pageSize,
+                }).then((res) => {
+                    if (res.status == 200) {
+                        this.tableData = res.data;
+                        this.loading = false;
+                    }
+                }).catch((error) => {
+                    console.log(error);
+                });
+            },
+            add() {
+                this.visible = true;
+                this.ruleFormCustomerName = '';
+                this.ruleForm.DeliveryDate = '';
+                this.ruleForm.DeliveryAddress = '';
+                this.ruleForm.Product='';
+                this.ruleForm.Quantity = '';
+            },
+            handleSizeChange(val) {
+                this.pageSize = val;
+                this.getProductList();
+            },
+            handleCurrentChange(val) {
+                this.currentPage = val;
+                this.getProductList();
+            },
+            tableRowClassName({ row, rowIndex }) {
+                if (rowIndex % 2 === 0) {
+                    return 'warning-row';
+                } else if (rowIndex % 2 === 1) {
+                    return 'success-row';
+                }
+                return '';
+            },
+        },
+        created: function () {
+            this.getOrderList();
+            this.getProducts();
+        }
+    });
+</script>
