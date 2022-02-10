@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using database;
 
@@ -10,9 +11,10 @@ using database;
 namespace database.Migrations
 {
     [DbContext(typeof(CoreContext))]
-    partial class CoreContextModelSnapshot : ModelSnapshot
+    [Migration("20220210022708_create table")]
+    partial class createtable
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -40,6 +42,7 @@ namespace database.Migrations
             modelBuilder.Entity("database.Models.Orders", b =>
                 {
                     b.Property<int>("OrderID")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
                     b.Property<string>("CustomerName")
@@ -66,6 +69,7 @@ namespace database.Migrations
             modelBuilder.Entity("database.Models.Products", b =>
                 {
                     b.Property<int>("ProductID")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
                     b.Property<string>("Name")

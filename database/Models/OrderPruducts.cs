@@ -8,18 +8,13 @@ namespace database.Models
 {
     public class OrderPruducts
     {
-        public OrderPruducts()
-        {
-            Orders = new Orders();
-            Products = new Products();
-        }
         public int OrderID { get; set; }
 
-        public Orders Orders { get; set; }
+        public virtual Orders Orders { get; set; }
 
         public int PruductID { get; set; }
 
-        public Products Products { get; set; }
+        public virtual Products Products { get; set; }
 
         public int Quantity { get; set; }
     }

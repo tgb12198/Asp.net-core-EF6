@@ -10,9 +10,15 @@ var sql = builder.Configuration.GetConnectionString("ConnectionString");
 
 builder.Services.AddControllersWithViews();
 
+var serverVersion = new MySqlServerVersion(new Version(8, 0, 27));
+
 builder.Services.AddDbContext<CoreContext>(options =>
 {
-    options.UseSqlServer(builder.Configuration.GetConnectionString("ConnectionString"));
+    //options.UseSqlServer(builder.Configuration.GetConnectionString("ConnectionString"));
+
+    options.UseMySql(builder.Configuration.GetConnectionString("ConnectionString"), serverVersion).LogTo(Console.WriteLine, LogLevel.Information)
+                .EnableSensitiveDataLogging()
+                .EnableDetailedErrors();
 });
 
 builder.Services.AddScoped<CoreContext>();
